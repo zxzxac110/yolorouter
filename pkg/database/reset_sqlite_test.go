@@ -94,7 +94,7 @@ func TestResetSQLiteRecreatesWithRestrictivePermissions(t *testing.T) {
 	if statErr != nil {
 		t.Fatalf("stat reset database file: %v", statErr)
 	}
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("expected reset database file to have 0600 permissions, got %04o", info.Mode().Perm())
 	}
 }

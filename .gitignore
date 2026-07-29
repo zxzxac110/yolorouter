@@ -15,7 +15,8 @@ frontend/.env.local
 !frontend/.env.example
 backups/
 .playwright-mcp/
-
+test/
+.vscode
 # web/dist holds the real frontend build, embedded via go:embed only in
 # builds tagged -tags embed (see web/embed_real.go / web/embed_stub.go and
 # design doc §7). 100% ignored, no exceptions — a plain (untagged) build

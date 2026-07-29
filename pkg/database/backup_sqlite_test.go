@@ -264,7 +264,7 @@ func TestVacuumSnapshotIntoTempFilePreservesPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat snapshot: %v", err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("expected the snapshot file to keep its pre-created 0600 permissions, got %04o", info.Mode().Perm())
 	}
 }

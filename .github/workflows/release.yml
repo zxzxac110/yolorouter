@@ -74,3 +74,37 @@ jobs:
           # not sensitive. Empty is allowed before the repo is public; the
           # update feature then falls back to config.update.github_repo.
           DEFAULT_GITHUB_REPO: ${{ vars.DEFAULT_GITHUB_REPO }}
+  pr-verify:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'   # 只在PR时运行
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        run: make embed-frontend
+
+      - name: Build Windows AMD64 binary
+        run: |
+          GOOS=windows GOARCH=amd64 go build -tags release,embed -o yolorouter_windows_amd64.exe ./cmd/yolorouter
+
+      - name: Build Windows ARM64 binary
+        run: |
+          GOOS=windows GOARCH=arm64 go build -tags release,embed -o yolorouter_windows_arm64.exe ./cmd/yolorouter
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-pr-build
+          path: yolorouter_windows_*.exe

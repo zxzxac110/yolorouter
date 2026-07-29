@@ -28,7 +28,7 @@ builds:
       - linux_arm64
       - darwin_amd64
       - darwin_arm64
-      - windows_amd64
+      - windows_amd64 
       - windows_arm64
     ldflags:
       - -s -w
@@ -54,6 +54,9 @@ archives:
     # `update` command's matchAsset — which keys off tag_name — finds the
     # right file: yolorouter_v{tag}_{os}_{arch}.tar.gz
     name_template: yolorouter_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
 
 checksum:
   name_template: checksums.txt

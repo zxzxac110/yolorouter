@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -98,17 +99,37 @@ func defaults() *Config {
 }
 
 // Load resolves the config path (explicitPath wins if non-empty, otherwise
-// "configs/config.yaml" relative to the process cwd at call time), then:
+// delegates to resolveConfigPath), then:
 //   - if the path exists: strict-parse it, no auto-generation ever happens
 //   - if explicitPath was given but doesn't exist: hard error
-//   - if using the default path and it doesn't exist: apply built-in
+//   - if using a default path and it doesn't exist: apply built-in
 //     defaults, generate a random provider_master_key, and atomically write
 //     the effective config out to that path so restarts reuse the same key
+func resolveConfigPath() string {
+	// 1. Environment variable takes highest priority.
+	if p := os.Getenv("YOLOROUTER_CONFIG"); p != "" {
+		return p
+	}
+
+	// 2. Derive from the executable's location.
+	//    e.g. /path/to/bin/yolorouter.exe -> /path/to/configs/config.yaml
+	if exe, err := os.Executable(); err == nil {
+		if p := filepath.Join(filepath.Dir(exe), "..", "configs", "config.yaml"); p != "" {
+			if _, err := os.Stat(p); err == nil {
+				return p
+			}
+		}
+	}
+
+	// 3. Fall back to the current working directory (legacy behaviour).
+	return filepath.Join("configs", "config.yaml")
+}
+
 func Load(explicitPath string) (*Config, error) {
 	path := explicitPath
 	usingDefaultPath := false
 	if path == "" {
-		path = filepath.Join("configs", "config.yaml")
+		path = resolveConfigPath()
 		usingDefaultPath = true
 	}
 
@@ -263,8 +284,10 @@ func loadStrict(path string) (*Config, error) {
 	// like any other secret file and reject group/other-readable permission
 	// bits (this only carries meaning on Unix; Go emulates harmless
 	// permission bits on Windows, so the check is a no-op there).
-	if info.Mode().Perm()&0o077 != 0 {
-		return nil, fmt.Errorf("config file %s must not be group- or other-readable (mode %04o); run chmod 600 %s", path, info.Mode().Perm(), path)
+	if runtime.GOOS != "windows" {
+		if info.Mode().Perm()&0o077 != 0 {
+			return nil, fmt.Errorf("config file %s must not be group- or other-readable (mode %04o); run chmod 600 %s", path, info.Mode().Perm(), path)
+		}
 	}
 
 	data, err := os.ReadFile(path)
